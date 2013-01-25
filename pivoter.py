@@ -24,12 +24,11 @@ def read_table(fname):
     return table
 
 
-def pivot(table, seed={}, start_index=1):
+def pivot(table, seed={}):
     _, month_dates = parse_header(table[0])
     rotated = rotate(table[1:])
     # get the accounts from all the first cols
     accounts = [account for account in rotated[0]]
-    num_accounts = len(accounts)
     month_rows = rotated[1:]
     pivoted = dict(seed)
     for month_idx, month_data in enumerate(month_rows):
