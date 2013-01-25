@@ -16,19 +16,33 @@ class TestPivoter(TestCase):
         f, name = tempfile.mkstemp()
         main(parse_cli(["samples/sample_ABC.csv", "-o", name]))
 
-    def test_pivoter_single_file(self):
+    def test_pivoter_one_pass(self):
         data = extract("samples/sample_ABC.csv")
-        result_table = convert_to_table(data)
+        result_table = prepare_table_to_write(data)
         expected_result = read_table("samples/result_ABC.csv")
         for actual, expected in zip(result_table, expected_result):
             self.assertItemsEqual(actual, expected)
 
     def test_pivoter_seed(self):
-        seedABC = extract("samples/sample_ABC.csv")
-        tableABCD = extract("samples/sample_BCD.csv", seed=seedABC)
-        result_table = convert_to_table(tableABCD)
+        tableABC = read_table("samples/sample_ABC.csv")
+        tableBCD = read_table("samples/sample_BCD.csv")
+        seedABC = pivot(tableABC)
+        tableABCD = pivot(tableBCD, seed=seedABC)
         expected_result = read_table("samples/result_ABCD.csv")
-        for actual, expected in zip(result_table, expected_result):
+        for actual, expected in zip(prepare_table_to_write(tableABCD), expected_result):
+            self.assertEqual(actual, expected)
+
+    def test_pivoter_seed_transitive_property(self):
+        tableABC = read_table("samples/sample_ABC.csv")
+        tableBCD = read_table("samples/sample_BCD.csv")
+        seedABC = pivot(tableABC)
+        seedBCD = pivot(tableBCD)
+        BCD_ABC = pivot(tableABC, seed=seedBCD)
+        ABC_BCD = pivot(tableBCD, seed=seedABC)
+        expected_result = read_table("samples/result_ABCD.csv")
+        for actual, expected in zip(prepare_table_to_write(BCD_ABC), expected_result):
+            self.assertItemsEqual(actual, expected)
+        for actual, expected in zip(prepare_table_to_write(ABC_BCD), expected_result):
             self.assertItemsEqual(actual, expected)
 
     def test_rotate(self):
@@ -37,7 +51,7 @@ class TestPivoter(TestCase):
         self.assertEqual(expected, actual)
 
     def test_convert_to_table(self):
-        rows = convert_to_table({
+        rows = prepare_table_to_write({
             3: Entry(2, "2012-05"),
             1: Entry(1, "2012-03"),
             0: Entry(1, "2012-01"),

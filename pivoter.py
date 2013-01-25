@@ -9,7 +9,7 @@ def main(params):
     #   save the file to git
     table = read_table(params.input)
     result = pivot(table)
-    result_table = convert_to_table(result)
+    result_table = prepare_table_to_write(result)
     if params.output is not None:
         with open(params.output, "w") as output:
             dump_table(result_table, output)
@@ -36,12 +36,12 @@ def pivot(table, seed={}):
         for account_idx, value in enumerate(month_data):
             account = accounts[account_idx]
             key = (account, month)
-            entry = pivoted[key] if account in pivoted else Entry(account, month)
+            entry = pivoted[key] if key in pivoted else Entry(account, month)
             entry.total += int(value)
             pivoted[key] = entry
     return pivoted
 
-def convert_to_table(data):
+def prepare_table_to_write(data):
     sorted_entries = sorted(data.values())
     rows = [tuple(map(str, [entry.account_id, entry.total, entry.month_date])) for entry in sorted_entries]
     header = ("account", "total", "month_date")
