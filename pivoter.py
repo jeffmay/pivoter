@@ -30,23 +30,21 @@ def pivot(table, seed={}, start_index=1):
     # get the accounts from all the first cols
     accounts = [account for account in rotated[0]]
     num_accounts = len(accounts)
-    month_data = rotated[1:]
-#    print rotated
-    for i, data in enumerate(month_data):
-        last_index = i + start_index
-        month = format_date_time(month_dates[i])
-        account = accounts[i % num_accounts]  # months rotate over accounts
-        time_periods = data[1:]
-        key = (account, month)
-        entry = seed[key] if account in seed else Entry(last_index, month)
-        for value in time_periods:
+    month_rows = rotated[1:]
+    pivoted = dict(seed)
+    for month_idx, month_data in enumerate(month_rows):
+        month = format_date_time(month_dates[month_idx])
+        for account_idx, value in enumerate(month_data):
+            account = accounts[account_idx]
+            key = (account, month)
+            entry = pivoted[key] if account in pivoted else Entry(account, month)
             entry.total += int(value)
-        seed[key] = entry
-    return seed
+            pivoted[key] = entry
+    return pivoted
 
 def convert_to_table(data):
-    data = sorted(data.values())
-    rows = [tuple([entry.account_id, entry.total, entry.month_date]) for entry in data]
+    sorted_entries = sorted(data.values())
+    rows = [tuple(map(str, [entry.account_id, entry.total, entry.month_date])) for entry in sorted_entries]
     header = ("account", "total", "month_date")
     return [header] + rows
 
@@ -66,7 +64,7 @@ class Entry:
         return isinstance(other, Entry) and self.__dict__ == other.__dict__
 
     def __hash__(self):
-        return sum((hash(item) for item in self.__dict__.items()))
+        return sum((hash(item) % 12098120497123 for item in self.__dict__.values()))
 
     def __repr__(self):
         return "Entry(%s)" % ", ".join([str(self.account_id), str(self.total)])
@@ -79,7 +77,7 @@ class Entry:
             return cmp(self.month_date, other.month_date)
 
 def rotate(matrix):
-    return zip(*matrix[:])
+    return zip(*matrix)
 
 def parse_header(row):
     label = row[0]

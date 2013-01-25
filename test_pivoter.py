@@ -2,9 +2,9 @@ from unittest import TestCase
 
 from pivoter import *
 
-def extract(fname):
+def extract(fname, **kwargs):
     input = read_table(fname)
-    return pivot(input)
+    return pivot(input, **kwargs)
 
 class TestPivoter(TestCase):
 
@@ -12,15 +12,23 @@ class TestPivoter(TestCase):
         parse_cli(["samples/sample_ABC.csv"])
 
     def test_main(self):
-        main(parse_cli(["samples/sample_ABC.csv"]))
+        import tempfile
+        f, name = tempfile.mkstemp()
+        main(parse_cli(["samples/sample_ABC.csv", "-o", name]))
 
-    def test_pivoter(self):
+    def test_pivoter_single_file(self):
         data = extract("samples/sample_ABC.csv")
         result_table = convert_to_table(data)
+        expected_result = read_table("samples/result_ABC.csv")
+        for actual, expected in zip(result_table, expected_result):
+            self.assertItemsEqual(actual, expected)
+
+    def test_pivoter_seed(self):
+        seedABC = extract("samples/sample_ABC.csv")
+        tableABCD = extract("samples/sample_BCD.csv", seed=seedABC)
+        result_table = convert_to_table(tableABCD)
         expected_result = read_table("samples/result_ABCD.csv")
-        print "actual: %s" % result_table
-        print "expected: %s" % expected_result
-        for actual, expected in result_table, expected_result:
+        for actual, expected in zip(result_table, expected_result):
             self.assertItemsEqual(actual, expected)
 
     def test_rotate(self):
@@ -36,12 +44,13 @@ class TestPivoter(TestCase):
             2: Entry(2, "2012-03"),
             4: Entry(2, "2013-03"),
         })
-        self.assertItemsEqual([
-            Entry(1, "2012-01"),
-            Entry(1, "2012-03"),
-            Entry(2, "2012-03"),
-            Entry(2, "2012-05"),
-            Entry(2, "2013-03"),
+        self.assertEqual([
+            ('account', 'total', 'month_date'),
+            ('1', '0', "2012-01"),
+            ('1', '0', "2012-03"),
+            ('2', '0', "2012-03"),
+            ('2', '0', "2012-05"),
+            ('2', '0', "2013-03"),
         ], rows)
 
 
